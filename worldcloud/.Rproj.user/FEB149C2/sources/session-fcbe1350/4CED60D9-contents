@@ -1,0 +1,61 @@
+#WORD CLOUD
+
+#INSTALANDO BIBLIOTECAS
+install.packages("tm")
+install.packages("wordcloud")
+install.packages("RColorBrewer")
+install.packages("readr")
+
+library(tm)
+library(wordcloud)
+library(RColorBrewer)
+library(readr)
+
+# Carregar os dados
+pix2023 <- read_csv("pixs.csv")
+
+pix2023$IdadePagamento <- gsub("entre ([0-9]+) e ([0-9]+) anos", "entre_\\1_e_\\2_anos", pix2023$IdadePagamento)
+pix2023$IdadeRecebimento <- gsub("entre ([0-9]+) e ([0-9]+) anos", "entre_\\1_e_\\2_anos", pix2023$IdadeRecebimento)
+
+pix2023$IdadePagamento <- gsub("até ([0-9]+) anos", "até_\\1_anos", pix2023$IdadePagamento)
+pix2023$IdadeRecebimento <- gsub("até ([0-9]+) anos", "até_\\1_anos", pix2023$IdadeRecebimento)
+
+pix2023$IdadePagamento <- gsub("mais de ([0-9]+) anos", "mais_de_\\1_anos", pix2023$IdadePagamento)
+pix2023$IdadeRecebimento <- gsub("mais de ([0-9]+) anos", "mais_de_\\1_anos", pix2023$IdadeRecebimento)
+
+pix2023$text <- paste(pix2023$RegiaoPagamento, pix2023$IdadePagamento, 
+                      pix2023$RegiaoRecebimento, pix2023$IdadeRecebimento, sep = " ")
+
+
+corpo = Corpus(VectorSource(pix2023$text))
+
+corpo = tm_map(corpo, content_transformer(tolower))
+corpo = tm_map(corpo, removePunctuation)
+
+corpo = tm_map(corpo, removeWords, c("não", "nao", "informado", "aplica", "n/a"))
+
+corpo = tm_map(corpo, content_transformer(function(x) gsub("\\b[0-9]+(\\.[0-9]+)?\\b", "", x)))
+
+# Criar a matriz de termos
+tdm <- TermDocumentMatrix(corpo)
+m <- as.matrix(tdm)
+
+# Contar a frequência das palavras
+frequencia_palavras <- sort(rowSums(m), decreasing = TRUE)
+
+# Criar um dataframe das palavras e frequências
+frequencia_palavras_df <- data.frame(word = names(frequencia_palavras), freq = frequencia_palavras)
+
+# Visualizar a wordcloud
+wordcloud(words = frequencia_palavras_df$word, 
+          freq = frequencia_palavras_df$freq, 
+          min.freq = 1, 
+          max.words = 200, 
+          random.order = FALSE, 
+          rot.per = 0.2, 
+          scale = c(3, 0), 
+          colors = brewer.pal(10, "Dark2")
+)
+
+# Mostrar a tabela com
+
